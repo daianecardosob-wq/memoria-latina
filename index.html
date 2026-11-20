@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Memoria Latina</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Spectral:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --slate: #1d2a31;
+  --slate-2: #26363f;
+  --wine: #6b1b2d;
+  --blue: #1e4166;
+  --gold: #c8a64e;
+  --ivory: #f3ecd9;
+  --ok: #3f7a55;
+  --serif-display: "Cinzel", "Trajan Pro", Georgia, serif;
+  --serif-text: "Spectral", Georgia, serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  min-height: 100vh;
+  background: radial-gradient(circle at 50% 0%, var(--slate-2), var(--slate) 70%);
+  color: var(--ivory);
+  font-family: var(--serif-text);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 16px 40px;
+}
+h1 {
+  font-family: var(--serif-display);
+  font-weight: 700;
+  font-size: clamp(1.8rem, 5vw, 3rem);
+  letter-spacing: .08em;
+  margin: 0;
+  color: var(--gold);
+}
+.sub { margin: 6px 0 22px; font-style: italic; opacity: .85; text-align: center; }
+
+.bar {
+  display: flex; flex-wrap: wrap; gap: 12px 20px;
+  align-items: center; justify-content: center;
+  margin-bottom: 22px;
+}
+.bar label { display: flex; align-items: center; gap: 8px; }
+select, button.btn {
+  font: inherit; color: var(--ivory);
+  background: var(--slate-2);
+  border: 1px solid var(--gold);
+  border-radius: 4px;
+  padding: 8px 14px;
+  cursor: pointer;
+}
+button.btn { background: var(--gold); color: var(--slate); font-weight: 600; }
+button.btn:hover { filter: brightness(1.08); }
+.stat { min-width: 90px; text-align: center; }
+.stat b { font-family: var(--serif-display); font-size: 1.3rem; color: var(--gold); display: block; }
+
+.board {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: clamp(8px, 2vw, 16px);
+  width: min(100%, 640px);
+}
+.card {
+  all: unset;
+  aspect-ratio: 3 / 4;
+  perspective: 800px;
+  cursor: pointer;
+  border-radius: 8px;
+}
+.card:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+.inner {
+  position: relative; width: 100%; height: 100%;
+  transform-style: preserve-3d;
+  transition: transform .45s;
+}
+.card.open .inner, .card.done .inner { transform: rotateY(180deg); }
+.face {
+  position: absolute; inset: 0;
+  backface-visibility: hidden;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 8px;
+  text-align: center;
+  padding: 6px;
+}
+.back {
+  background:
+    repeating-linear-gradient(45deg, transparent 0 10px, rgba(200,166,78,.12) 10px 11px),
+    var(--slate-2);
+  border: 2px solid var(--gold);
+  color: var(--gold);
+  font-family: var(--serif-display);
+  font-size: clamp(1.6rem, 6vw, 2.6rem);
+}
+.front { transform: rotateY(180deg); border: 2px solid var(--gold); }
+.front span { font-size: clamp(1rem, 3.6vw, 1.6rem); word-break: break-word; }
+.front.lat { background: var(--wine); font-family: var(--serif-display); font-weight: 700; letter-spacing: .04em; }
+.front.por { background: var(--blue); font-weight: 600; }
+.card.done .front { border-color: var(--ok); box-shadow: 0 0 0 3px var(--ok); }
+
+.legend { display: flex; gap: 16px; margin-top: 20px; font-size: .95rem; }
+.legend i { display: inline-block; width: 14px; height: 14px; border-radius: 3px; vertical-align: -2px; margin-right: 6px; border: 1px solid var(--gold); }
+
+dialog {
+  border: 2px solid var(--gold); border-radius: 8px;
+  background: var(--slate); color: var(--ivory);
+  text-align: center; padding: 28px 36px; max-width: 90vw;
+}
+dialog::backdrop { background: rgba(0,0,0,.6); }
+dialog h2 { font-family: var(--serif-display); color: var(--gold); margin-top: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .inner { transition: none; }
+}
+</style>
+</head>
+<body>
+<h1>Memoria Latina</h1>
+<p class="sub">Una cada palavra em latim à sua tradução em português.</p>
+
+<div class="bar">
+  <label>Pares
+    <select id="level">
+      <option value="4">4 (fácil)</option>
+      <option value="6">6 (médio)</option>
+      <option value="8" selected>8 (difícil)</option>
+    </select>
+  </label>
+  <div class="stat">Jogadas<b id="moves">0</b></div>
+  <div class="stat">Tempo<b id="time">0:00</b></div>
+  <button class="btn" id="restart" type="button">Novo jogo</button>
+</div>
+
+<div class="board" id="board" role="group" aria-label="Tabuleiro"></div>
+
+<div class="legend">
+  <span><i style="background:var(--wine)"></i>Latim</span>
+  <span><i style="background:var(--blue)"></i>Português</span>
+</div>
+
+<dialog id="win">
+  <h2>Euge! Parabéns!</h2>
+  <p id="winText"></p>
+  <button class="btn" id="again" type="button">Jogar de novo</button>
+</dialog>
+
+<script>
+const WORDS = [
+  ["aqua","água"], ["terra","terra"], ["luna","lua"], ["stella","estrela"],
+  ["florem","flor"], ["focus","foco"], ["filius","filho"], ["noctem","noite"],
+  ["clavem","chave"], ["panem","pão"], ["oculum","olho"], ["caput","cabeça"],
+  ["causam","coisa"], ["auricula","orelha"], ["nox","noite"], ["lux","luz"]
+];
+
+const board = document.getElementById("board");
+const movesEl = document.getElementById("moves");
+const timeEl = document.getElementById("time");
+const levelEl = document.getElementById("level");
+const winDlg = document.getElementById("win");
+
+let first = null, lock = false, moves = 0, matched = 0, total = 0;
+let timer = null, seconds = 0;
+
+function shuffle(a) {
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+function fmt(s) { return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); }
+function stopTimer() { clearInterval(timer); timer = null; }
+function startTimer() {
+  if (timer) return;
+  timer = setInterval(() => { seconds++; timeEl.textContent = fmt(seconds); }, 1000);
+}
+
+function newGame() {
+  stopTimer();
+  first = null; lock = false; moves = 0; matched = 0; seconds = 0;
+  movesEl.textContent = 0; timeEl.textContent = "0:00";
+  total = +levelEl.value;
+  const pairs = shuffle([...WORDS]).slice(0, total);
+  const cards = [];
+  pairs.forEach(([lat, por], id) => {
+    cards.push({ id, text: lat, lang: "lat" }, { id, text: por, lang: "por" });
+  });
+  shuffle(cards);
+  board.innerHTML = "";
+  cards.forEach(c => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "card";
+    b.dataset.id = c.id;
+    b.setAttribute("aria-label", "Carta virada");
+    b.innerHTML =
+      '<div class="inner">' +
+      '<div class="face back" aria-hidden="true">&#10086;</div>' +
+      '<div class="face front ' + c.lang + '"><span></span></div>' +
+      '</div>';
+    b.querySelector(".front span").textContent = c.text;
+    b.dataset.label = (c.lang === "lat" ? "Latim: " : "Português: ") + c.text;
+    b.addEventListener("click", () => flip(b));
+    board.appendChild(b);
+  });
+}
+
+function flip(card) {
+  if (lock || card.classList.contains("open") || card.classList.contains("done")) return;
+  startTimer();
+  card.classList.add("open");
+  card.setAttribute("aria-label", card.dataset.label);
+  if (!first) { first = card; return; }
+
+  moves++; movesEl.textContent = moves;
+  lock = true;
+  if (first.dataset.id === card.dataset.id) {
+    [first, card].forEach(c => { c.classList.remove("open"); c.classList.add("done"); });
+    first = null; lock = false; matched++;
+    if (matched === total) finish();
+  } else {
+    const a = first; first = null;
+    setTimeout(() => {
+      [a, card].forEach(c => { c.classList.remove("open"); c.setAttribute("aria-label", "Carta virada"); });
+      lock = false;
+    }, 1000);
+  }
+}
+
+function finish() {
+  stopTimer();
+  document.getElementById("winText").textContent =
+    "Você achou todos os pares em " + moves + " jogadas e " + fmt(seconds) + ".";
+  setTimeout(() => winDlg.showModal(), 600);
+}
+
+document.getElementById("restart").addEventListener("click", newGame);
+document.getElementById("again").addEventListener("click", () => { winDlg.close(); newGame(); });
+levelEl.addEventListener("change", newGame);
+newGame();
+</script>
+</body>
+</html>
